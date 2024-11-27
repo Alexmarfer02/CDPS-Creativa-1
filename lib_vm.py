@@ -62,7 +62,8 @@ def edit_xml (mv):
     call(["cp","./temporal.xml", path + ".xml"])  #sustituimos es XML por el temporal, que es el que contiene las dos LAN
     call(["rm", "-f", "./temporal.xml"])
 
-        
+def config_network(mv):
+   pass
 
 
 
@@ -72,11 +73,19 @@ class VM:
         log.debug(f'Initializing VM {name}')
         
     def create(self, image, interfaces, router):
-        log.debug(f'Creating VM {self.name} with image {image} and interfaces {interfaces}')
+        log.debug(f'Creando VM {self.name} con imagen {image} e interfaz {interfaces}')
         #Se crean las MVs y las redes que forman el escenario a partir de la imagen base
         call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.nombre + ".qcow2"])
         #Se modifican archivos de configuración de las MVs (los xmls)
         call(["cp", "plantilla-vm-pc1.xml", self.nombre + ".xml"])
+        edit_xml(self.name)
+        log.debug(f"Fichero {self.name}.xml modificado con éxito.")
+        #Definimos las maquinas virtuales
+        call(["sudo", "virsh", "define", self.nombre + ".xml"])
+        log.debug(f"Definida MV {self.name}")
+        #Configuramos las redes de las maquinas virtuales
+        config_network(self.name)
+        
     
     def start(self):
         log.debug(f'Starting VM {self.name}')
