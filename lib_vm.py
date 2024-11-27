@@ -14,19 +14,18 @@ bridges = {"c1":["LAN1"],
           "s4":["LAN2"],
           "s5":["LAN2"]}
 network = {
-          "c1":["10.11.1.2", "10.11.1.1"],
-          "s1":["10.11.2.31", "10.11.2.1"],
-          "s2":["10.11.2.32", "10.11.2.1"], 
-          "s3":["10.11.2.33", "10.11.2.1"],
-          "s4":["10.11.2.34", "10.11.2.1"],
-          "s5":["10.11.2.35", "10.11.2.1"]}
+          "c1":["10.1.1.2", "10.1.1.1"],
+          "s1":["10.1.2.11", "10.1.2.1"],
+          "s2":["10.1.2.12", "10.1.2.1"], 
+          "s3":["10.1.2.13", "10.1.2.1"],
+          "s4":["10.1.2.14", "10.1.2.1"],
+          "s5":["10.1.2.15", "10.1.2.1"]}
 
 
 def edit_xml (mv):
     #Se obtiene el directorio de trabajo
     cwd = os.getcwd()  #método de OS que devuelve el Current Working Directory
     path = cwd + "/" + mv
-    #path = "/Desktop/Creativa/"
     
     #Se importa el .xml de la máquina pasada como parámetro utilizando métodos de la librería LXML
     tree = etree.parse(path + ".xml")
@@ -47,6 +46,7 @@ def edit_xml (mv):
     with open(path + ".xml" ,"w") as xml :
         xml.write(etree.tounicode(root, pretty_print=True))  #Se escribe el XML modificado en el archivo correspondiente a la máquina pasada como parámetro
     
+    #Lo hacemos para lb ya que esta en 2 LANs distintas
     if mv == "lb" :
         fin = open(path + ".xml",'r')   #fin es el XML correspondiente a lb, en modo solo lectura
         fout = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
