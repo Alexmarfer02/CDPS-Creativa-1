@@ -7,19 +7,19 @@ log = logging.getLogger('manage-p2')
 #Creamos el escenario 
 servers = {"s1", "s2", "s3", "s4", "s5"}
 bridges = {"c1":["LAN1"],
-          "lb":["LAN1"],
-          "s1":["LAN2"],
-          "s2":["LAN2"],
-          "s3":["LAN2"],
-          "s4":["LAN2"],
-          "s5":["LAN2"]}
+        "lb":["LAN1"],
+        "s1":["LAN2"],
+        "s2":["LAN2"],
+        "s3":["LAN2"],
+        "s4":["LAN2"],
+        "s5":["LAN2"]}
 network = {
-          "c1":["10.1.1.2", "10.1.1.1"],
-          "s1":["10.1.2.11", "10.1.2.1"],
-          "s2":["10.1.2.12", "10.1.2.1"], 
-          "s3":["10.1.2.13", "10.1.2.1"],
-          "s4":["10.1.2.14", "10.1.2.1"],
-          "s5":["10.1.2.15", "10.1.2.1"]}
+        "c1":["10.1.1.2", "10.1.1.1"],
+        "s1":["10.1.2.11", "10.1.2.1"],
+        "s2":["10.1.2.12", "10.1.2.1"], 
+        "s3":["10.1.2.13", "10.1.2.1"],
+        "s4":["10.1.2.14", "10.1.2.1"],
+        "s5":["10.1.2.15", "10.1.2.1"]}
 
 
 def edit_xml (vm):
@@ -65,7 +65,7 @@ def edit_xml (vm):
 def config_network(vm):
     cwd = os.getcwd() #configuramos etc/hostname (modificando los ficheros)
     path = cwd + "/" + vm
-   
+
     with open("hostname", "w") as hostname: 
         hostname.write(vm + "\n")  
 
@@ -80,8 +80,6 @@ def config_network(vm):
     else:
         call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/network/interfaces","-e", f"$auto eth0 \\n iface eth0 inet static \\n address {network[vm][0]}\\n netmask 255.255.255.0 \\n  gateway {network[vm][1]}"])#modificamos etc/network/interfaces
 
-
- #reboot??
 
 
 
@@ -109,18 +107,29 @@ class VM:
         #Arrancamos las maquinas virtuales
         call(["sudo", "virsh", "start", self.name])
         #Abrimos terminal nuevo para cada MV
-        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.nombre + "' -e 'sudo virsh console "+ self.nombre + "' &")
-    
         log.debug(f'Starting VM {self.name}')
-       
     
-    def stop(self):
-        log.debug(f'Stopping VM {self.name}')
-        # Comando para detener VM
+    def show_console_vm (self):
+        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.name + "' -e 'sudo virsh console "+ self.name + "' &")
+        log.debug("Abriendo consola de " + self.name)
+
+
+    def stop_vm(self):
+        log.debug(f'Apagando VM {self.name}')
+        #Apagamos las maquinas virtuales
+        call(["sudo", "virsh", "shutdown", self.name])
+        log.info(f"Se ha detenido VM {self.name}")
     
-    def destroy(self):
-        log.debug(f'Destroying VM {self.name}')
-        # Comando para destruir VM
+    def destroy_vm(self):
+        log.debug(f'Destruyendo VM {self.name}')
+        #Destruimos las maquinas virtuales
+        call(["sudo", "virsh", "destroy", self.name])
+        #Desdefinimos las maquinas virtuales
+        call(["sudo", "virsh", "undefine", self.name])
+        #Eliminamos los archivos de configuración de las MVs
+        os.remove(f"{self.name}.qcow2")
+        os.remove(f"{self.name}.xml")
+        log.info(f"Se ha destruido VM {self.name}")
 
 
 class RED:
@@ -128,12 +137,12 @@ class RED:
         self.name = name
         log.debug(f'Initializing Network {name}')
         
-    def create_net(self):
+    def create_red(self):
         call(["sudo", "ovs-vsctl", "add-br", self.name])
         log.debug(f'Creating Network {self.name}')
         # Crear bridges con ovs-vsctl
     
-    def destroy_net(self):
+    def destroy_red(self):
         call(["sudo", "ovs-vsctl", "del-br", self.name])
         log.debug(f'Destroying Network {self.name}')
         # Destruir bridges
