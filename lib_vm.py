@@ -128,10 +128,12 @@ class NET:
         self.name = name
         log.debug(f'Initializing Network {name}')
         
-    def create(self):
+    def create_net(self):
+        call(["sudo", "ovs-vsctl", "add-br", self.name])
         log.debug(f'Creating Network {self.name}')
         # Crear bridges con ovs-vsctl
     
-    def destroy(self):
+    def destroy_net(self):
+        call(["sudo", "ovs-vsctl", "del-br", self.name])
         log.debug(f'Destroying Network {self.name}')
         # Destruir bridges
