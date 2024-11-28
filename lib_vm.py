@@ -22,10 +22,10 @@ network = {
           "s5":["10.1.2.15", "10.1.2.1"]}
 
 
-def edit_xml (mv):
+def edit_xml (vm):
     #Se obtiene el directorio de trabajo
     cwd = os.getcwd()  #método de OS que devuelve el Current Working Directory
-    path = cwd + "/" + mv
+    path = cwd + "/" + vm
     
     #Se importa el .xml de la máquina pasada como parámetro utilizando métodos de la librería LXML
     tree = etree.parse(path + ".xml")
@@ -33,7 +33,7 @@ def edit_xml (mv):
     
     #Se define el nombre de la MV
     name = root.find("name")
-    name.text = mv
+    name.text = vm
     
     #Se define el nombre de la imagen, cambiando la ruta del source de la imagen (disk) al qcow2 correspondiente a la maquina pasada como parametro
     sourceFile = root.find("./devices/disk/source")
@@ -41,13 +41,13 @@ def edit_xml (mv):
     
     #Se definen los bridges, modificando el XML con los bridges correspondientes a la maquina parámetro
     bridge = root.find("./devices/interface/source")
-    bridge.set("bridge", bridges[mv][0])  #se cambia el valor de la etiqueta <source bridge> por la LAN (el bridge) correspondiente a la máquina pasada como parametro
+    bridge.set("bridge", bridges[vm][0])  #se cambia el valor de la etiqueta <source bridge> por la LAN (el bridge) correspondiente a la máquina pasada como parametro
     
     with open(path + ".xml" ,"w") as xml :
         xml.write(etree.tounicode(root, pretty_print=True))  #Se escribe el XML modificado en el archivo correspondiente a la máquina pasada como parámetro
     
     #Lo hacemos para lb ya que esta en 2 LANs distintas
-    if mv == "lb" :
+    if vm == "lb" :
         fin = open(path + ".xml",'r')   #fin es el XML correspondiente a lb, en modo solo lectura
         fout = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
         for line in fin:
@@ -62,14 +62,14 @@ def edit_xml (mv):
     call(["cp","./temporal.xml", path + ".xml"])  #sustituimos es XML por el temporal, que es el que contiene las dos LAN
     call(["rm", "-f", "./temporal.xml"])
 
-def config_network(mv):
+def config_network(vm):
     cwd = os.getcwd()
-    path = cwd + "/" + mv
+    path = cwd + "/" + vm
     
     with open("hostname", "w") as hostname:
-        hostname.write(mv + "\n")
+        hostname.write(vm + "\n")
         
-    call(["sudo", "virt-copy-in", "-a", mv + ".qcow2", "hostname", "/etc"])
+    call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "hostname", "/etc"])
     call(["rm", "-f", "hostname"])
 
 class VM:
@@ -100,7 +100,7 @@ class VM:
         
     
     def show_console_vm(self):
-        log.debug(f'Showing console of VM {self.name}')
+        log.debug(f'Mostrando consola de maquina virtual {self.name}')
         # Comando para mostrar consola de VM
     
     def stop_vm(self):
