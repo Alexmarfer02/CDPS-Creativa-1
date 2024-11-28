@@ -88,6 +88,7 @@ def config_network(vm):
         
     call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "interfaces", "/etc/network"])
     call(["rm", "-f", "interfaces"])
+    #Habilitamos forwarding IPv4 para que lb funcione como router al arrancar
     if vm == "lb":
         call("sudo virt-edit -a lb.qcow2 /etc/sysctl.conf -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/'", shell=True)
         
@@ -119,7 +120,6 @@ class VM:
         #Abrimos terminal nuevo para cada MV
         os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.nombre + "' -e 'sudo virsh console "+ self.nombre + "' &")
         
-    
     def show_console_vm(self):
         log.debug(f'Mostrando consola de maquina virtual {self.name}')
         # Comando para mostrar consola de VM
@@ -138,10 +138,12 @@ class NET:
         self.name = name
         log.debug(f'Initializing Network {name}')
         
-    def create(self):
-        log.debug(f'Creating Network {self.name}')
-        # Crear bridges con ovs-vsctl
+    def create_net(self):
+        log.debug(f'Creando la red {self.name}')
+        call(["sudo", "ovs-vsctl", "add-br", self.name])
+        log.debug(f"Bridge {self.name} creado con éxito.")
     
-    def destroy(self):
+    def destroy_net(self):
         log.debug(f'Destroying Network {self.name}')
-        # Destruir bridges
+        call(["sudo", "ovs-vsctl", "del-br", self.name])
+        log.debug(f"Bridge {self.name} eliminado con éxito.")
