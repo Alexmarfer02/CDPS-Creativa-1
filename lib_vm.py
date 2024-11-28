@@ -63,39 +63,51 @@ def edit_xml (mv):
     call(["rm", "-f", "./temporal.xml"])
 
 def config_network(mv):
-   pass
-
-
+    cwd = os.getcwd()
+    path = cwd + "/" + mv
+    
+    with open("hostname", "w") as hostname:
+        hostname.write(mv + "\n")
+        
+    call(["sudo", "virt-copy-in", "-a", mv + ".qcow2", "hostname", "/etc"])
+    call(["rm", "-f", "hostname"])
 
 class VM:
     def __init__(self, name):
         self.name = name
         log.debug(f'Initializing VM {name}')
         
-    def create(self, image, interfaces, router):
-        log.debug(f'Creando VM {self.name} con imagen {image} e interfaz {interfaces}')
+    def create_vm(self):
+        log.debug(f'Creando VM {self.name}')
         #Se crean las MVs y las redes que forman el escenario a partir de la imagen base
-        call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.nombre + ".qcow2"])
+        call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.name + ".qcow2"])
         #Se modifican archivos de configuración de las MVs (los xmls)
-        call(["cp", "plantilla-vm-pc1.xml", self.nombre + ".xml"])
+        call(["cp", "plantilla-vm-pc1.xml", self.name + ".xml"])
         edit_xml(self.name)
         log.debug(f"Fichero {self.name}.xml modificado con éxito.")
         #Definimos las maquinas virtuales
-        call(["sudo", "virsh", "define", self.nombre + ".xml"])
+        call(["sudo", "virsh", "define", self.name + ".xml"])
         log.debug(f"Definida MV {self.name}")
         #Configuramos las redes de las maquinas virtuales
         config_network(self.name)
         
+    def start_vm(self):
+        log.debug(f'Arrancando VM {self.name}')
+        #Arrancamos las maquinas virtuales
+        call(["sudo", "virsh", "start", self.name])
+        #Abrimos terminal nuevo para cada MV
+        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.nombre + "' -e 'sudo virsh console "+ self.nombre + "' &")
+        
     
-    def start(self):
-        log.debug(f'Starting VM {self.name}')
-        # Comando para iniciar VM
+    def show_console_vm(self):
+        log.debug(f'Showing console of VM {self.name}')
+        # Comando para mostrar consola de VM
     
-    def stop(self):
+    def stop_vm(self):
         log.debug(f'Stopping VM {self.name}')
         # Comando para detener VM
     
-    def destroy(self):
+    def destroy_vm(self):
         log.debug(f'Destroying VM {self.name}')
         # Comando para destruir VM
 
