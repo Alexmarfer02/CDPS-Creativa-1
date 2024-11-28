@@ -126,14 +126,18 @@ class VM:
     
     def stop_vm(self):
         log.debug(f'Apagando VM {self.name}')
+        #Apagamos las maquinas virtuales
         subprocess.call(["sudo", "virsh", "shutdown", self.name])
         log.info(f"Se ha detenido VM {self.name}")
 
     
     def destroy_vm(self):
         log.debug(f'Destruyendo VM {self.name}')
+        #Destruimos las maquinas virtuales
         subprocess.call(["sudo", "virsh", "destroy", self.name])
+        #Desdefinimos las maquinas virtuales
         subprocess.call(["sudo", "virsh", "undefine", self.name])
+        #Eliminamos los archivos de configuración de las MVs
         os.remove(f"{self.name}.qcow2")
         os.remove(f"{self.name}.xml")
         log.info(f"Se ha destruido VM {self.name}")
