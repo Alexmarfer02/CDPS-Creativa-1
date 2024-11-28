@@ -123,7 +123,7 @@ class VM:
         # Comando para destruir VM
 
 
-class NET:
+class RED:
     def __init__(self, name):
         self.name = name
         log.debug(f'Initializing Network {name}')
