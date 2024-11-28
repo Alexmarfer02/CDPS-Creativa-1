@@ -7,19 +7,19 @@ log = logging.getLogger('manage-p2')
 #Creamos el escenario 
 servers = {"s1", "s2", "s3", "s4", "s5"}
 bridges = {"c1":["LAN1"],
-          "lb":["LAN1"],
-          "s1":["LAN2"],
-          "s2":["LAN2"],
-          "s3":["LAN2"],
-          "s4":["LAN2"],
-          "s5":["LAN2"]}
+        "lb":["LAN1"],
+        "s1":["LAN2"],
+        "s2":["LAN2"],
+        "s3":["LAN2"],
+        "s4":["LAN2"],
+        "s5":["LAN2"]}
 network = {
-          "c1":["10.1.1.2", "10.1.1.1"],
-          "s1":["10.1.2.11", "10.1.2.1"],
-          "s2":["10.1.2.12", "10.1.2.1"], 
-          "s3":["10.1.2.13", "10.1.2.1"],
-          "s4":["10.1.2.14", "10.1.2.1"],
-          "s5":["10.1.2.15", "10.1.2.1"]}
+        "c1":["10.1.1.2", "10.1.1.1"],
+        "s1":["10.1.2.11", "10.1.2.1"],
+        "s2":["10.1.2.12", "10.1.2.1"], 
+        "s3":["10.1.2.13", "10.1.2.1"],
+        "s4":["10.1.2.14", "10.1.2.1"],
+        "s5":["10.1.2.15", "10.1.2.1"]}
 
 netmask = "255.255.255.0"
 
@@ -125,18 +125,24 @@ class VM:
         # Comando para mostrar consola de VM
     
     def stop_vm(self):
-        log.debug(f'Stopping VM {self.name}')
-        # Comando para detener VM
+        log.debug(f'Apagando VM {self.name}')
+        subprocess.call(["sudo", "virsh", "shutdown", self.name])
+        log.info(f"Se ha detenido VM {self.name}")
+
     
     def destroy_vm(self):
-        log.debug(f'Destroying VM {self.name}')
-        # Comando para destruir VM
+        log.debug(f'Destruyendo VM {self.name}')
+        subprocess.call(["sudo", "virsh", "destroy", self.name])
+        subprocess.call(["sudo", "virsh", "undefine", self.name])
+        os.remove(f"{self.name}.qcow2")
+        os.remove(f"{self.name}.xml")
+        log.info(f"Se ha destruido VM {self.name}")
 
 
 class RED:
     def __init__(self, name):
         self.name = name
-        log.debug(f'Initializing Network {name}')
+        log.debug(f'Inicializando Network {name}')
         
     def create_net(self):
         log.debug(f'Creando la red {self.name}')
@@ -144,6 +150,6 @@ class RED:
         log.debug(f"Bridge {self.name} creado con éxito.")
     
     def destroy_net(self):
-        log.debug(f'Destroying Network {self.name}')
+        log.debug(f'Destruyendo la red {self.name}')
         call(["sudo", "ovs-vsctl", "del-br", self.name])
         log.debug(f"Bridge {self.name} eliminado con éxito.")
