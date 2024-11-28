@@ -68,7 +68,7 @@ def start(numero):
     #log.debug("Escenario arrancado correctamente")
 
 def stop(numero):
-     
+
     for n in range(1, numero + 1):
             nombre = f"s{n}"
             servidor = VM(nombre)
@@ -76,7 +76,7 @@ def stop(numero):
             
     c1 = VM("c1")
     c1.stop_vm()
-          
+
     lb = VM("lb")
     lb.stop_vm()
 
