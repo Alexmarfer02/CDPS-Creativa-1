@@ -22,10 +22,10 @@ network = {
           "s5":["10.1.2.15", "10.1.2.1"]}
 
 
-def edit_xml (mv):
+def edit_xml (vm):
     #Se obtiene el directorio de trabajo
     cwd = os.getcwd()  #método de OS que devuelve el Current Working Directory
-    path = cwd + "/" + mv
+    path = cwd + "/" + vm
     
     #Se importa el .xml de la máquina pasada como parámetro utilizando métodos de la librería LXML
     tree = etree.parse(path + ".xml")
@@ -33,7 +33,7 @@ def edit_xml (mv):
     
     #Se define el nombre de la MV
     name = root.find("name")
-    name.text = mv
+    name.text = vm
     
     #Se define el nombre de la imagen, cambiando la ruta del source de la imagen (disk) al qcow2 correspondiente a la maquina pasada como parametro
     sourceFile = root.find("./devices/disk/source")
@@ -41,18 +41,18 @@ def edit_xml (mv):
     
     #Se definen los bridges, modificando el XML con los bridges correspondientes a la maquina parámetro
     bridge = root.find("./devices/interface/source")
-    bridge.set("bridge", bridges[mv][0])  #se cambia el valor de la etiqueta <source bridge> por la LAN (el bridge) correspondiente a la máquina pasada como parametro
+    bridge.set("bridge", bridges[vm][0])  #se cambia el valor de la etiqueta <source bridge> por la LAN (el bridge) correspondiente a la máquina pasada como parametro
     
     with open(path + ".xml" ,"w") as xml :
         xml.write(etree.tounicode(root, pretty_print=True))  #Se escribe el XML modificado en el archivo correspondiente a la máquina pasada como parámetro
     
     #Lo hacemos para lb ya que esta en 2 LANs distintas
-    if mv == "lb" :
+    if vm == "lb" :
         fin = open(path + ".xml",'r')   #fin es el XML correspondiente a lb, en modo solo lectura
         fout = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
         for line in fin:
             if "</interface>" in line:
-                fout.write("</interface>\n <interface type='bridge'>\n <source bridge='"+"LAN2"+"'/>\n <model type='virtio'/>\n </interface>\n")
+                fout.write("</interface>\n <interface type='bridge'>\n <source bridge='"+"LAN2"+"'/>\n <model type='virtio'/>\n </interface>\n")##############################cambiar
     #si el XML de lb contiene un interface (que lo va a contener, ya que previamente se le habrá añadido el bridge LAN1), se le añade al XML temporal otro bridge: LAN2
     else:
         fout.write(line)
@@ -62,8 +62,26 @@ def edit_xml (mv):
     call(["cp","./temporal.xml", path + ".xml"])  #sustituimos es XML por el temporal, que es el que contiene las dos LAN
     call(["rm", "-f", "./temporal.xml"])
 
-def config_network(mv):
-   pass
+def config_network(vm):
+    cwd = os.getcwd() #configuramos etc/hostname (modificando los ficheros)
+    path = cwd + "/" + vm
+   
+    with open("hostname", "w") as hostname: 
+        hostname.write(vm + "\n")  
+
+    call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "hostname", "/etc"])#modificamos etc/hostname
+    call(["rm", "-f", "hostname"])
+
+    call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/hosts","-e", f"s/127.0.1.1.*/127.0.1.1 {vm}/"])#modificamos etc/hosts
+    if vm == "lb":
+        call(["sudo", "virt-edit", "-a", f"lb.qcow2", "/etc/network/interfaces","-e", f"$auto eth0\\niface eth0 inet static\\n    address 10.1.1.1\\n    netmask 255.255.255.0\\n" f"auto eth1\\niface eth1 inet static\\n    address 10.1.2.1\\n    netmask 255.255.255.0"])#modificamos etc/network/interfaces $$$$$$$$????????
+        #call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/network/interfaces","-e", f"$auto eth1 \\n iface eth1 inet static \\n address 10.1.2.1 \\n netmask 255.255.255.0"])#modificamos etc/network/interfaces
+        call(["sudo", "virt-edit", "-a", "lb.qcow2", "/etc/sysctl.conf", "-e", "'$net.ipv4.ip_forward = 1'"])
+    else:
+        call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/network/interfaces","-e", f"$auto eth0 \\n iface eth0 inet static \\n address {network[vm][0]}\\n netmask 255.255.255.0 \\n  gateway {network[vm][1]}"])#modificamos etc/network/interfaces
+
+
+ #reboot??
 
 
 
@@ -72,22 +90,25 @@ class VM:
         self.name = name
         log.debug(f'Initializing VM {name}')
         
-    def create(self, image, interfaces, router):
+    def create_vm(self, image, interfaces, router):
         log.debug(f'Creando VM {self.name} con imagen {image} e interfaz {interfaces}')
         #Se crean las MVs y las redes que forman el escenario a partir de la imagen base
-        call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.nombre + ".qcow2"])
+        call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.name + ".qcow2"])
         #Se modifican archivos de configuración de las MVs (los xmls)
-        call(["cp", "plantilla-vm-pc1.xml", self.nombre + ".xml"])
+        call(["cp", "plantilla-vm-pc1.xml", self.name + ".xml"])
         edit_xml(self.name)
         log.debug(f"Fichero {self.name}.xml modificado con éxito.")
         #Definimos las maquinas virtuales
-        call(["sudo", "virsh", "define", self.nombre + ".xml"])
+        call(["sudo", "virsh", "define", self.name + ".xml"])
         log.debug(f"Definida MV {self.name}")
         #Configuramos las redes de las maquinas virtuales
         config_network(self.name)
         
     
     def start(self):
+        call(["sudo", "virsh", "start", self.name])
+        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.name + "' -e 'sudo virsh console "+ self.name + "' &")
+
         log.debug(f'Starting VM {self.name}')
         # Comando para iniciar VM
     
