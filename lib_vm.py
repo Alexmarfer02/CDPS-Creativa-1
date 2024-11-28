@@ -21,6 +21,8 @@ network = {
           "s4":["10.1.2.14", "10.1.2.1"],
           "s5":["10.1.2.15", "10.1.2.1"]}
 
+netmask = "255.255.255.0"
+
 
 def edit_xml (vm):
     #Se obtiene el directorio de trabajo
@@ -71,6 +73,25 @@ def config_network(vm):
         
     call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "hostname", "/etc"])
     call(["rm", "-f", "hostname"])
+    
+    #Configuracion del host, que asigna nombres de host a direcciones IP
+    #Asigna la direccion IP local a la maquina pasada como parametr
+    call("sudo virt-edit -a " + vm + ".qcow2 /etc/hosts -e 's/127.0.1.1.*/127.0.1.1 " + vm + "/'", shell=True) #cambiarlo
+    
+    with open("interfaces", "w") as interfaces:
+        if vm == "lb":
+            #Añade a interfaces sus dos interfaces correspondientes a LAN1 y LAN2 al ser lb
+            interfaces.write("auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet static\n  address 10.11.1.1\n netmask" + netmask + "\nauto eth1\niface eth1 inet static\n  address 10.11.2.1\n netmask " + netmask)
+        else:
+            #Añade la direccion IP correspondiente a la maquina, y la direccion del LB en gateway
+            interfaces.write("auto lo \niface lo inet loopback \n\nauto eth0 \niface eth0 inet static \naddress " + network[vm][0] + " \nnetmask" + netmask + "\ngateway " + network[vm][1])
+        
+    call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "interfaces", "/etc/network"])
+    call(["rm", "-f", "interfaces"])
+    if vm == "lb":
+        call("sudo virt-edit -a lb.qcow2 /etc/sysctl.conf -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/'", shell=True)
+        
+        
 
 class VM:
     def __init__(self, name):
