@@ -65,32 +65,23 @@ def edit_xml (vm):
     call(["rm", "-f", "./temporal.xml"])
 
 def config_network(vm):
-    cwd = os.getcwd()
+    cwd = os.getcwd() #configuramos etc/hostname (modificando los ficheros)
     path = cwd + "/" + vm
     
-    with open("hostname", "w") as hostname:
-        hostname.write(vm + "\n")
-        
-    call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "hostname", "/etc"])
+    with open("hostname", "w") as hostname: 
+        hostname.write(vm + "\n")  
+
+    call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "hostname", "/etc"])#modificamos etc/hostname
     call(["rm", "-f", "hostname"])
-    
-    #Configuracion del host, que asigna nombres de host a direcciones IP
-    #Asigna la direccion IP local a la maquina pasada como parametr
-    call("sudo virt-edit -a " + vm + ".qcow2 /etc/hosts -e 's/127.0.1.1.*/127.0.1.1 " + vm + "/'", shell=True) #cambiarlo
-    
-    with open("interfaces", "w") as interfaces:
-        if vm == "lb":
-            #Añade a interfaces sus dos interfaces correspondientes a LAN1 y LAN2 al ser lb
-            interfaces.write("auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet static\n  address 10.11.1.1\n netmask" + netmask + "\nauto eth1\niface eth1 inet static\n  address 10.11.2.1\n netmask " + netmask)
-        else:
-            #Añade la direccion IP correspondiente a la maquina, y la direccion del LB en gateway
-            interfaces.write("auto lo \niface lo inet loopback \n\nauto eth0 \niface eth0 inet static \naddress " + network[vm][0] + " \nnetmask" + netmask + "\ngateway " + network[vm][1])
-        
-    call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "interfaces", "/etc/network"])
-    call(["rm", "-f", "interfaces"])
-    #Habilitamos forwarding IPv4 para que lb funcione como router al arrancar
+
+    call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/hosts","-e", f"s/127.0.1.1.*/127.0.1.1 {vm}/"])#modificamos etc/hosts
     if vm == "lb":
-        call("sudo virt-edit -a lb.qcow2 /etc/sysctl.conf -e 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/'", shell=True)
+        call(["sudo", "virt-edit", "-a", f"lb.qcow2", "/etc/network/interfaces","-e", f"$auto eth0\\niface eth0 inet static\\n    address 10.1.1.1\\n    netmask 255.255.255.0\\n" f"auto eth1\\niface eth1 inet static\\n    address 10.1.2.1\\n    netmask 255.255.255.0"])#modificamos etc/network/interfaces $$$$$$$$????????
+        #call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/network/interfaces","-e", f"$auto eth1 \\n iface eth1 inet static \\n address 10.1.2.1 \\n netmask 255.255.255.0"])#modificamos etc/network/interfaces
+        call(["sudo", "virt-edit", "-a", "lb.qcow2", "/etc/sysctl.conf", "-e", "'$net.ipv4.ip_forward = 1'"])
+    else:
+        call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/network/interfaces","-e", f"$auto eth0 \\n iface eth0 inet static \\n address {network[vm][0]}\\n netmask 255.255.255.0 \\n  gateway {network[vm][1]}"])#modificamos etc/network/interfaces
+
         
         
 
