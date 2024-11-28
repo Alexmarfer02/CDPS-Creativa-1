@@ -90,8 +90,8 @@ class VM:
         self.name = name
         log.debug(f'Initializing VM {name}')
         
-    def create_vm(self, image, interfaces, router):
-        log.debug(f'Creando VM {self.name} con imagen {image} e interfaz {interfaces}')
+    def create_vm(self):
+        log.debug(f'Creando VM {self.name}')
         #Se crean las MVs y las redes que forman el escenario a partir de la imagen base
         call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.name + ".qcow2"])
         #Se modifican archivos de configuración de las MVs (los xmls)
@@ -104,13 +104,15 @@ class VM:
         #Configuramos las redes de las maquinas virtuales
         config_network(self.name)
         
-    
-    def start(self):
+    def start_vm(self):
+        log.debug(f'Arrancando VM {self.name}')
+        #Arrancamos las maquinas virtuales
         call(["sudo", "virsh", "start", self.name])
-        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.name + "' -e 'sudo virsh console "+ self.name + "' &")
-
+        #Abrimos terminal nuevo para cada MV
+        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.nombre + "' -e 'sudo virsh console "+ self.nombre + "' &")
+    
         log.debug(f'Starting VM {self.name}')
-        # Comando para iniciar VM
+       
     
     def stop(self):
         log.debug(f'Stopping VM {self.name}')
