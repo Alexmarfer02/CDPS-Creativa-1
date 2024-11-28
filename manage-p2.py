@@ -102,7 +102,7 @@ def destroy(numero):
     LAN2.destroy_net()  
     
         #log.info("Redes 'LAN1' y 'LAN2' eliminadas correctamente.")
-   
+
 
     #log.debug("Escenario destruido correctamente.")
 
