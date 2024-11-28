@@ -30,39 +30,44 @@ def edit_xml (vm):
     path = cwd + "/" + vm
     
     #Se importa el .xml de la máquina pasada como parámetro utilizando métodos de la librería LXML
+    #Creamos un arbol estructurado con el XML de la máquina pasada como parámetro
     tree = etree.parse(path + ".xml")
+    #Se obtiene la raíz del árbol con la que podemos acceder a los elementos fijos
     root = tree.getroot()
     
     #Se define el nombre de la MV
     name = root.find("name")
-    name.text = vm
+    if name is not None:
+        name.text = vm
     
     #Se define el nombre de la imagen, cambiando la ruta del source de la imagen (disk) al qcow2 correspondiente a la maquina pasada como parametro
     sourceFile = root.find("./devices/disk/source")
-    sourceFile.set("file", path + ".qcow2")
+    if sourceFile is not None:
+        sourceFile.set("file", path + ".qcow2")
     
     #Se definen los bridges, modificando el XML con los bridges correspondientes a la maquina parámetro
     bridge = root.find("./devices/interface/source")
-    bridge.set("bridge", bridges[vm][0])  #se cambia el valor de la etiqueta <source bridge> por la LAN (el bridge) correspondiente a la máquina pasada como parametro
+    if bridge is not None:
+        bridge.set("bridge", bridges[vm][0])  #se cambia el valor de la etiqueta <source bridge> por la LAN (el bridge) correspondiente a la máquina pasada como parametro
     
+    #Con esto abrimos archivo "xml" en modo escritura, y escribimos en él el XML modificado (si no existe se crea)
     with open(path + ".xml" ,"w") as xml :
         xml.write(etree.tounicode(root, pretty_print=True))  #Se escribe el XML modificado en el archivo correspondiente a la máquina pasada como parámetro
     
     #Lo hacemos para lb ya que esta en 2 LANs distintas
     if vm == "lb" :
-        fin = open(path + ".xml",'r')   #fin es el XML correspondiente a lb, en modo solo lectura
-        fout = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
-        for line in fin:
-            if "</interface>" in line:
-                fout.write("</interface>\n <interface type='bridge'>\n <source bridge='"+"LAN2"+"'/>\n <model type='virtio'/>\n </interface>\n")
-    #si el XML de lb contiene un interface (que lo va a contener, ya que previamente se le habrá añadido el bridge LAN1), se le añade al XML temporal otro bridge: LAN2
-    else:
-        fout.write(line)
-    fin.close()
-    fout.close()
-
-    call(["cp","./temporal.xml", path + ".xml"])  #sustituimos es XML por el temporal, que es el que contiene las dos LAN
-    call(["rm", "-f", "./temporal.xml"])
+        fcopy = open(path + ".xml",'r')   #fin es el XML correspondiente a lb, en modo solo lectura
+        ftemporal = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
+        for linea in fcopy:
+            if "</interface>" in linea:
+                ftemporal.write("</interface>\n <interface type='bridge'>\n <source bridge='"+"LAN2"+"'/>\n <model type='virtio'/>\n <virtualport type='openvswitch'\n </interface>\n")
+        #si el XML de lb contiene un interface (que lo va a contener, ya que previamente se le habrá añadido el bridge LAN1), se le añade al XML temporal otro bridge: LAN2
+        else:
+            ftemporal.write(linea)
+        fcopy.close()
+        ftemporal.close()
+        call(["cp","./temporal.xml", path + ".xml"])  #sustituimos es XML por el temporal, que es el que contiene las dos LAN
+        call(["rm", "-f", "./temporal.xml"])
 
 def config_network(vm):
     cwd = os.getcwd()
