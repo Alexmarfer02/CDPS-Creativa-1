@@ -1,5 +1,5 @@
 
-from lib_vm import VM, NET
+from lib_vm import VM, RED
 from lxml import etree
 import logging, sys, json
 import os
@@ -38,9 +38,9 @@ def create(numero):
         servidor = VM(nombre)
         servidor.crear_vm()
     
-    LAN1 = NET('LAN1')
+    LAN1 = RED('LAN1')
     LAN1.create_net()
-    LAN2 = NET('LAN2')
+    LAN2 = RED('LAN2')
     LAN2.create_net()
     call(["sudo", "ifconfig", "LAN1", "10.11.1.3/24"])###CAMBIARip
     call(["sudo", "ip", "route", "add", "10.11.0.0/16", "via", "10.11.1.1"])###CAMBIARip
@@ -96,8 +96,8 @@ def destroy(numero):
         #log.info("Router 'lb' destruido correctamente.")
         
         # Destruir redes LAN1 y LAN2
-    LAN1 = NET("LAN1")
-    LAN2 = NET("LAN2")
+    LAN1 = RED("LAN1")
+    LAN2 = RED("LAN2")
     LAN1.destroy_net()  
     LAN2.destroy_net()  
     
