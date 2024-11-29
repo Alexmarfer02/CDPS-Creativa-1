@@ -100,7 +100,7 @@ def config_network(vm):
             interfaces.write("auto lo \niface lo inet loopback \n\nauto eth0 \niface eth0 inet static \naddress " + network[vm][0] + " \nnetmask " + netmask + "\ngateway " + network[vm][1])
         else:
             interfaces.write("auto lo \niface lo inet loopback \n\nauto eth1 \niface eth1 inet static \naddress " + network[vm][0] + " \nnetmask " + netmask + "\ngateway " + network[vm][1])
-    
+            
     #Copiamos el archivo interfaces a la MV correspondiente y lo colocamos en /etc/network
     call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "interfaces", "/etc/network"])
     call(["rm", "-f", "interfaces"])
@@ -175,12 +175,12 @@ class RED:
         self.name = name
         log.debug(f'Inicializando Network {name}')
         
-    def create_net(self):
+    def create_red(self):
         log.debug(f'Creando la red {self.name}')
         call(["sudo", "ovs-vsctl", "add-br", self.name])
         log.debug(f"Bridge {self.name} creado con éxito.")
     
-    def destroy_net(self):
+    def destroy_red(self):
         log.debug(f'Destruyendo la red {self.name}')
         call(["sudo", "ovs-vsctl", "del-br", self.name])
         log.debug(f"Bridge {self.name} eliminado con éxito.")

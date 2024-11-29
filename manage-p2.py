@@ -42,9 +42,9 @@ def create():
         servidor.crear_vm()
     
     LAN1 = RED('LAN1')
-    LAN1.create_net()
+    LAN1.create_red()
     LAN2 = RED('LAN2')
-    LAN2.create_net()
+    LAN2.create_red()
     call(["sudo", "ifconfig", "LAN1", "10.11.1.3/24"])###CAMBIARip
     call(["sudo", "ip", "route", "add", "10.11.0.0/16", "via", "10.11.1.1"])###CAMBIARip
 
