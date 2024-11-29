@@ -153,12 +153,12 @@ class RED:
         self.name = name
         log.debug(f'Inicializando Network {name}')
         
-    def create_net(self):
+    def create_red(self):
         log.debug(f'Creando la red {self.name}')
         call(["sudo", "ovs-vsctl", "add-br", self.name])
         log.debug(f"Bridge {self.name} creado con éxito.")
     
-    def destroy_net(self):
+    def destroy_red(self):
         log.debug(f'Destruyendo la red {self.name}')
         call(["sudo", "ovs-vsctl", "del-br", self.name])
         log.debug(f"Bridge {self.name} eliminado con éxito.")
