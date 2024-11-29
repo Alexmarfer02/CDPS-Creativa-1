@@ -60,7 +60,7 @@ def edit_xml (vm):
         ftemporal = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
         for linea in fcopy:
             if "</interface>" in linea:
-                ftemporal.write("</interface>\n <interface type='bridge'>\n <source bridge='"+"LAN2"+"'/>\n <model type='virtio'/>\n <virtualport type='openvswitch'\n </interface>\n")
+                ftemporal.writelines("\n <interface type='bridge'>\n <source bridge='"+"LAN2"+"'/>\n <model type='virtio'/>\n <virtualport type='openvswitch'\n </interface>\n")
         #si el XML de lb contiene un interface (que lo va a contener, ya que previamente se le habrá añadido el bridge LAN1), se le añade al XML temporal otro bridge: LAN2
         else:
             ftemporal.write(linea)
@@ -86,10 +86,13 @@ def config_network(vm):
     with open("interfaces", "w") as interfaces:
         if vm == "lb":
             #Añade a interfaces sus dos interfaces correspondientes a LAN1 y LAN2 al ser lb
-            interfaces.write("auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet static\n  address 10.11.1.1\n netmask" + netmask + "\nauto eth1\niface eth1 inet static\n  address 10.11.2.1\n netmask " + netmask)
-        else:
+            interfaces.write("auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet static\\n  address 10.1.1.1\n netmask" + netmask + "\nauto eth1\niface eth1 inet static\n  address 10.1.2.1\n netmask " + netmask)
+        elif vm == "c1":
             #Añade la direccion IP correspondiente a la maquina, y la direccion del LB en gateway
             interfaces.write("auto lo \niface lo inet loopback \n\nauto eth0 \niface eth0 inet static \naddress " + network[vm][0] + " \nnetmask" + netmask + "\ngateway " + network[vm][1])
+        else:
+            #Añade la direccion IP correspondiente a la maquina, y la direccion del LB en gateway
+            interfaces.write("auto lo \niface lo inet loopback \n\nauto eth1 \niface eth1 inet static \naddress " + network[vm][0] + " \nnetmask" + netmask + "\ngateway " + network[vm][1])
         
     call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "interfaces", "/etc/network"])
     call(["rm", "-f", "interfaces"])
