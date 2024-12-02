@@ -109,5 +109,13 @@ def destroy(numero):
 # Main
 init_log()
 print('CDPS - mensaje info1')
-    
+command = sys.argv[1].lower()
+if command == "create":
+        create()
+    elif command == "start":
+        start()
+    elif command == "stop":
+        stop()
+    elif command == "destroy":
+        destroy()  
     
