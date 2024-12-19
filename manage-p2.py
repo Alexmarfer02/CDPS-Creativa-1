@@ -1,4 +1,3 @@
-
 from lib_vm import VM, RED
 import logging, sys, json, os
 from subprocess import call
