@@ -23,6 +23,7 @@ network = {
 
 netmask = "255.255.255.0"
 
+
 def edit_xml (vm):
     #Obtenemos el directorio de trabajo actual
     cwd = os.getcwd()  
@@ -70,8 +71,8 @@ def edit_xml (vm):
     
     #Lo hacemos solo para lb, ya que es el único que tiene dos LAN y hay que añadirle un campo interface nuevo
     if vm == "lb" :
-        xml_original = open(path + ".xml",'r')   #fin es el XML correspondiente a lb, en modo solo lectura
-        xml_temporal = open("temporal.xml",'w')  #fout es un XML temporal abierto en modo escritura
+        xml_original = open(path + ".xml",'r')   #XML correspondiente a lb, en modo solo lectura
+        xml_temporal = open("temporal.xml",'w')  #XML temporal abierto en modo escritura
         for linea in xml_original:
             xml_temporal.write(linea)
             if "</interface>" in linea:
@@ -92,14 +93,12 @@ def config_network(vm):
     call(["sudo", "virt-edit", "-a", f"{vm}.qcow2", "/etc/hosts","-e", f"s/127.0.1.1.*/127.0.1.1 {vm}/"])
     
     with open("interfaces", "w") as interfaces:
-        #En el compensador lb se añaden las configuraciones de eth1 y eth0
+        #En lb se añaden las configuraciones de eth1 y eth0
         if vm == "lb":
-            interfaces.write("auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet static\naddress 10.1.1.1\nnetmask" + netmask + "\nauto eth1\niface eth1 inet static\naddress 10.1.2.1\nnetmask " + netmask)
-        #En las demás máquinas se añade la confiuracion de eth0 o eth1 con la dirección IP correspondiente y la dirección del LB en gateway
-        elif vm == "c1":
-            interfaces.write("auto lo \niface lo inet loopback \n\nauto eth0 \niface eth0 inet static \naddress " + network[vm][0] + " \nnetmask " + netmask + "\ngateway " + network[vm][1])
+            interfaces.write("auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet static\n    address 10.1.1.1\n    netmask " + netmask + "\nauto eth1\niface eth1 inet static\n    address 10.1.2.1\n    netmask " + netmask)
+        #En las demás máquinas se añade la confiuracion eth0 con la dirección IP correspondiente y la dirección del LB en gateway
         else:
-            interfaces.write("auto lo \niface lo inet loopback \n\nauto eth1 \niface eth1 inet static \naddress " + network[vm][0] + " \nnetmask " + netmask + "\ngateway " + network[vm][1])
+            interfaces.write("auto lo \niface lo inet loopback \n\nauto eth0 \niface eth0 inet static \n    address " + network[vm][0] + " \n    netmask " + netmask + "\n    gateway " + network[vm][1])
             
     #Copiamos el archivo interfaces a la MV correspondiente y lo colocamos en /etc/network
     call(["sudo", "virt-copy-in", "-a", vm + ".qcow2", "interfaces", "/etc/network"])
@@ -111,16 +110,15 @@ def config_network(vm):
 class VM:
     def __init__(self, name):
         self.name = name
-        log.debug(f'Inicializando VM {name}')
         
     def create_vm(self):
         log.debug(f'Creando VM {self.name}')
         
-        #Se crean las MVs y las redes que forman el escenario a partir de la imagen base
+        #Se crean las vm a partir de la imagen base
         call(["qemu-img","create", "-F", "qcow2", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.name + ".qcow2"])
         log.debug(f"Imagen {self.name}.qcow2 creada con éxito.")
         
-        #Se modifican archivos de configuración de las MVs (los xmls)
+        #Se modifican archivos de configuración de las vm (los xmls)
         call(["cp", "plantilla-vm-pc1.xml", self.name + ".xml"])
         edit_xml(self.name)
         log.debug(f"Fichero {self.name}.xml modificado con éxito.")
@@ -135,7 +133,6 @@ class VM:
         
     def start_vm(self):
         log.debug(f'Arrancando VM {self.name}')
-        
         #Arrancamos las maquinas virtuales 
         call(["sudo", "virsh", "start", self.name])
         log.info(f"Se ha arrancado VM {self.name}")
@@ -143,28 +140,45 @@ class VM:
         
     def show_console_vm(self):
         log.debug(f'Mostrando consola de maquina virtual {self.name}')
+        #Abrimos terminal nuevo para cada vm
+        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.name + "' -e 'sudo virsh console "+ self.name + "' &")
+    
+    def datos_vm(self):
+        log.debug(f'Mostrando datos de maquina virtual {self.name}')
+        #Mostramos los datos de la vm
+        call(["sudo", "virsh", "dominfo", self.name])
+        log.info(f"Datos de VM {self.name} mostrados correctamente.")
+    
+    def estado_vm(self):
+        log.debug(f'Mostrando estado de maquina virtual {self.name}')
+        #Mostramos el estado de la vm
+        result = call(["sudo", "virsh", "domstate", self.name])
+        self.is_running = (result == 0)
+        log.info(f"Estado de VM {self.name} mostrado correctamente. Ejecutándose: {self.is_running}")
         
-        #Abrimos terminal nuevo para cada MV
-        os.system("xterm -rv -sb -rightbar -fa monospace -fs 10 -title '" + self.nombre + "' -e 'sudo virsh console "+ self.nombre + "' &")
+    def ping_vm(self):
+        log.debug(f'Haciendo ping a la maquina virtual {self.name}')
+        #Hacemos ping a la vm
+        if self.name == "lb":
+            os.system("ping -c 4 10.1.1.1")
+        else:
+            os.system(f"ping -c 4 {network[self.name][0]}")
     
     def stop_vm(self):
         log.debug(f'Apagando VM {self.name}')
-        
         #Apagamos las maquinas virtuales
         call(["sudo", "virsh", "shutdown", self.name])
         log.info(f"Se ha detenido VM {self.name}")
 
     
-    def destroy_vm(self):
+    def destroy_vm(self, apagado=False):
         log.debug(f'Destruyendo VM {self.name}')
-        
-        #Destruimos las maquinas virtuales
-        call(["sudo", "virsh", "destroy", self.name])
-        
+        if apagado== False:
+            call(["sudo", "virsh", "destroy", self.name])
         #Desdefinimos las maquinas virtuales
         call(["sudo", "virsh", "undefine", self.name])
-        
-        #Eliminamos los archivos de configuración de las MVs
+        apagado= False
+        #Eliminamos los archivos de configuración de las vm
         os.remove(f"{self.name}.qcow2")
         os.remove(f"{self.name}.xml")
         log.info(f"Se ha destruido VM {self.name}")
